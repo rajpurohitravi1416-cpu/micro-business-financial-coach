@@ -1,0 +1,10 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: bizz-brains-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/bizz_brains.db:/app/bizz_brains.db
+    restart: unless-stopped
