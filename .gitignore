@@ -1,20 +1,30 @@
 # Python
-backend/.venv/
-backend/__pycache__/
-backend/**/*.pyc
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# SQLite database
+*.db
+*.sqlite
+*.sqlite3
 
 # Node
-frontend/node_modules/
+node_modules/
 frontend/dist/
 
-# Environment files
-.env
-backend/.env
-frontend/.env
+# Logs
+*.log
 
-# IDE / OS
-.vscode/
-.idea/
-*.swp
+# OS
 .DS_Store
 Thumbs.db
