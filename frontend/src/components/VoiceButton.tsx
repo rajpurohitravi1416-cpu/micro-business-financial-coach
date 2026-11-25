@@ -16,7 +16,7 @@ export function VoiceButton({ onText }: { onText: (text: string) => void }) {
     recognition.onresult = (event: any) => onText(event.results[0][0].transcript);
     recognition.start();
   };
-  return <button className="icon-button voice-button" onClick={start} aria-label="Speak to Bizz Brains" title="Speak to Bizz Brains"><Mic size={21}/></button>;
+  return <button className="icon-button voice-button" onClick={start} aria-label="Speak to MysHopUpdates" title="Speak to MysHopUpdates"><Mic size={21}/></button>;
 }
 
 export function SpeakButton({ text }: { text: string }) {

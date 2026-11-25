@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models import Business, Expense
+from app.core.security import get_current_user, require_business_access
+from app.models import Expense, User
 from app.schemas.expense import ExpenseCreate, ExpenseResponse
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
@@ -11,19 +12,10 @@ router = APIRouter(prefix="/expenses", tags=["Expenses"])
 @router.post("/", response_model=ExpenseResponse)
 def create_expense(
     expense_data: ExpenseCreate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    business = (
-        db.query(Business)
-        .filter(Business.id == expense_data.business_id)
-        .first()
-    )
-
-    if not business:
-        raise HTTPException(
-            status_code=404,
-            detail="Business not found",
-        )
+    require_business_access(db, current_user, expense_data.business_id)
 
     if expense_data.amount <= 0:
         raise HTTPException(
@@ -52,8 +44,10 @@ def create_expense(
 )
 def get_expenses(
     business_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_business_access(db, current_user, business_id)
     return (
         db.query(Expense)
         .filter(Expense.business_id == business_id)

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models import Sale, Purchase, Expense, Udhaar
+from app.core.security import get_current_user, require_business_access
+from app.models import Sale, Purchase, Expense, Udhaar, User
 from app.schemas.cashflow import CashFlowResponse
 
 router = APIRouter(prefix="/cashflow", tags=["Cash Flow"])
@@ -14,8 +15,10 @@ router = APIRouter(prefix="/cashflow", tags=["Cash Flow"])
 )
 def get_cash_flow(
     business_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_business_access(db, current_user, business_id)
     cash_sales = (
         db.query(Sale)
         .filter(

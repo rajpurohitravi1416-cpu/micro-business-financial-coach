@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models import Business, Sale, Purchase, Expense, Udhaar
+from app.core.security import get_current_user, require_business_access
+from app.models import Sale, Purchase, Expense, Udhaar, User
 
 
 router = APIRouter(
@@ -14,15 +15,10 @@ router = APIRouter(
 @router.get("/{business_id}")
 def get_safe_to_spend(
     business_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    business = db.get(Business, business_id)
-
-    if not business:
-        raise HTTPException(
-            status_code=404,
-            detail="Business not found",
-        )
+    business = require_business_access(db, current_user, business_id)
 
     cash_sales = (
         db.query(Sale)

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models import Product, Purchase
+from app.core.security import get_current_user, require_business_access
+from app.models import Product, Purchase, User
 from app.schemas.purchase import PurchaseCreate, PurchaseResponse
 
 router = APIRouter(prefix="/purchases", tags=["Purchases"])
@@ -11,8 +12,10 @@ router = APIRouter(prefix="/purchases", tags=["Purchases"])
 @router.post("/", response_model=PurchaseResponse)
 def create_purchase(
     purchase_data: PurchaseCreate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_business_access(db, current_user, purchase_data.business_id)
     product = (
         db.query(Product)
         .filter(
@@ -56,8 +59,10 @@ def create_purchase(
 )
 def get_purchases(
     business_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_business_access(db, current_user, business_id)
     return (
         db.query(Purchase)
         .filter(Purchase.business_id == business_id)

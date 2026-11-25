@@ -33,6 +33,7 @@ import {
   getTranslations,
   useLanguage,
 } from '../../i18n';
+import { useAuth } from '../../auth/AuthContext';
 
 const iconMap = {
   dashboard: LayoutDashboard,
@@ -62,13 +63,14 @@ export function AppLayout({
   const navigate = useNavigate();
 
   const t = getTranslations();
+  const { user, activeBusiness, logout } = useAuth();
 
   const section =
     loc.pathname.split('/')[1];
 
   const title =
     (t.nav as any)[section] ??
-    'Bizz Brains';
+    'MysHopUpdates';
 
   void language;
 
@@ -118,11 +120,11 @@ export function AppLayout({
       >
         <div className="brand">
           <span className="brand-mark">
-            B
+            M
           </span>
 
           <span>
-            Bizz <b>Brains</b>
+            MysHopUpdates
 
             <small>
               Your business. Smarter decisions.
@@ -170,23 +172,24 @@ export function AppLayout({
 
         <div className="profile">
           <div className="avatar">
-            RK
+            {user?.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}
           </div>
 
           <div>
             <strong>
-              Ravi Kumar
+              {user?.name}
             </strong>
 
             <span>
-              Ravi Kirana Store
+              {activeBusiness?.name ?? 'Shop Owner'}
             </span>
           </div>
 
           <button
             title="Log out"
-            onClick={() =>
-              navigate('/login')
+              onClick={async () => {
+                try { await logout(); } finally { navigate('/login'); }
+              }
             }
             className="icon-button"
           >
@@ -220,7 +223,7 @@ export function AppLayout({
 
             <div>
               <span className="eyebrow">
-                Ravi Kirana Store
+                {activeBusiness?.name ?? 'Your shop'}
               </span>
 
               <h1>
@@ -242,11 +245,11 @@ export function AppLayout({
 
             <button className="user-menu">
               <span className="avatar">
-                RK
+                {user?.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}
               </span>
 
               <span>
-                Ravi
+                {user?.name.split(' ')[0]}
               </span>
 
               <ChevronDown

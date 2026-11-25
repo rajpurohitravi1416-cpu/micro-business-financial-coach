@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models import Business, Customer
+from app.core.security import get_current_user, require_business_access
+from app.models import Customer, User
 from app.schemas.customer import CustomerCreate, CustomerResponse
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
@@ -11,19 +12,10 @@ router = APIRouter(prefix="/customers", tags=["Customers"])
 @router.post("/", response_model=CustomerResponse)
 def create_customer(
     customer_data: CustomerCreate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    business = (
-        db.query(Business)
-        .filter(Business.id == customer_data.business_id)
-        .first()
-    )
-
-    if not business:
-        raise HTTPException(
-            status_code=404,
-            detail="Business not found",
-        )
+    require_business_access(db, current_user, customer_data.business_id)
 
     customer = Customer(
         business_id=customer_data.business_id,
@@ -45,8 +37,10 @@ def create_customer(
 )
 def get_customers(
     business_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_business_access(db, current_user, business_id)
     return (
         db.query(Customer)
         .filter(Customer.business_id == business_id)

@@ -7,6 +7,9 @@ __pycache__/
 .venv/
 venv/
 env/
+backend/.python-install/
+backend/.uv-cache/
+backend/.pytest_cache/
 
 # Environment variables
 .env
@@ -21,6 +24,8 @@ env/
 # Node
 node_modules/
 frontend/dist/
+build/
+dist/
 
 # Logs
 *.log
@@ -28,3 +33,9 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Personal Windows shortcuts
+*.lnk
+
+# Test and temporary files
+.pytest_cache/

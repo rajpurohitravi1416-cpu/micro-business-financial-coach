@@ -45,8 +45,8 @@ const hi = {
     latestSales: "हाल की बिक्री",
     recentSales: "हाल की बिक्री",
     quickActions: "त्वरित कार्रवाई",
-    bizzBrainsSays: "BIZZ BRAINS की सलाह",
-    askBizzBrains: "BIZZ BRAINS से पूछें",
+    mysHopUpdatesSays: "MysHopUpdates की सलाह",
+    askMysHopUpdates: "MysHopUpdates से पूछें",
   },
 
   actions: {
@@ -57,7 +57,7 @@ const hi = {
     reviewStock: "स्टॉक देखें",
     reviewInventory: "इन्वेंटरी देखें",
     viewUdhaar: "उधार देखें",
-    askBizzBrains: "Bizz Brains से पूछें",
+    askMysHopUpdates: "MysHopUpdates से पूछें",
   },
 
   sales: {

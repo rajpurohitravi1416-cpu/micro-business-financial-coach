@@ -1,7 +1,10 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.database import Base, engine
+from app.db.migrations import backup_database_if_needed, ensure_auth_schema
 from app.models import (
     Business,
     Product,
@@ -10,6 +13,8 @@ from app.models import (
     Expense,
     Customer,
     Udhaar,
+    User,
+    UserSession,
 )
 from app.routers import (
     business,
@@ -23,22 +28,32 @@ from app.routers import (
     coach,
     cashflow,
     safe_to_spend,
+    auth,
+    admin,
 )
 
+backup_database_if_needed()
 Base.metadata.create_all(bind=engine)
+ensure_auth_schema()
 
 app = FastAPI(
-    title="Bizz Brains API",
-    description="AI-powered financial coach for Indian micro-businesses",
+    title="MysHopUpdates API",
+    description="Small-business management API for sales, inventory, expenses, customer credit, and cash flow.",
     version="0.1.0",
 )
 
+frontend_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "FRONTEND_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=frontend_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,12 +70,14 @@ app.include_router(analytics.router)
 app.include_router(coach.router)
 app.include_router(cashflow.router)
 app.include_router(safe_to_spend.router)
+app.include_router(auth.router)
+app.include_router(admin.router)
 
 
 @app.get("/")
 def root():
     return {
-        "message": "Bizz Brains API is running",
+        "message": "MysHopUpdates API is running",
         "status": "healthy",
     }
 
@@ -69,6 +86,6 @@ def root():
 def health():
     return {
         "status": "healthy",
-        "service": "bizz-brains-backend",
+        "service": "MysHopUpdates-backend",
     }
 

@@ -1,25 +1,98 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-const BUSINESS_ID = 1;
+let selectedBusinessId: number | null = null;
+let csrfToken: string | null = null;
+
+export function setBusinessId(id: number | null) {
+  selectedBusinessId = id;
+}
+
+export function setCsrfToken(token: string | null) {
+  csrfToken = token;
+}
+
+function currentBusinessId() {
+  if (selectedBusinessId === null) {
+    throw new Error("Create or select a shop before loading business records.");
+  }
+  return selectedBusinessId;
+}
 
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const method = (options.method || "GET").toUpperCase();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+    headers["X-CSRF-Token"] = csrfToken;
+  }
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    method,
+    credentials: "include",
+    headers,
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`API ${response.status}: ${error}`);
+    let message = `Request failed (${response.status}).`;
+    try {
+      const body = await response.text();
+      if (body) {
+        try {
+          const error = JSON.parse(body);
+          message = error.detail || error.message || body;
+        } catch {
+          message = body;
+        }
+      }
+    } catch {
+      // Keep the status-based message if the response body cannot be read.
+    }
+    throw new Error(message);
   }
 
+  if (response.status === 204) return undefined as T;
   return response.json();
 }
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "shop_owner";
+}
+
+export interface AuthResult {
+  user: AuthUser;
+  csrf_token: string;
+}
+
+export interface ApiBusiness {
+  id: number;
+  name: string;
+  owner_name: string;
+  phone: string | null;
+  opening_cash: number;
+}
+
+export interface AdminOverview {
+  user_count: number;
+  shop_count: number;
+  users: Array<{ id: number; name: string; email: string }>;
+  unassigned_businesses: Array<{ id: number; name: string; owner_name: string }>;
+}
+
+export const authApi = {
+  register: (data: { name: string; email: string; password: string }) =>
+    request<AuthResult>("/auth/register", { method: "POST", body: JSON.stringify(data) }),
+  login: (data: { email: string; password: string }) =>
+    request<AuthResult>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+  me: () => request<AuthResult>("/auth/me"),
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
+};
 
 export interface DashboardData {
   total_sales: number;
@@ -80,7 +153,7 @@ export interface ApiCustomer {
   id: number;
   business_id: number;
   name: string;
-  phone: string;
+  phone: string | null;
   total_due: number;
 }
 
@@ -138,28 +211,48 @@ export interface CoachData {
   low_stock_products: ApiProduct[];
 }
 
+export interface CoachStatus {
+  configured: boolean;
+  available: boolean;
+  model: string | null;
+  message: string;
+}
+
 export const api = {
+  getMyBusinesses: () => request<ApiBusiness[]>("/businesses/mine"),
+
+  postBusiness: (data: { name: string; owner_name: string; phone?: string; opening_cash?: number }) =>
+    request<ApiBusiness>("/businesses/", { method: "POST", body: JSON.stringify(data) }),
+
+  getAdminOverview: () => request<AdminOverview>("/admin/overview"),
+
+  assignBusinessOwner: (businessId: number, email: string) =>
+    request<{ message: string }>(`/admin/businesses/${businessId}/assign-owner`, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
   getBusiness: () =>
-    request(`/businesses/${BUSINESS_ID}`),
+    request(`/businesses/${currentBusinessId()}`),
 
   getDashboard: () =>
     request<DashboardData>(
-      `/analytics/business/${BUSINESS_ID}`
+      `/analytics/business/${currentBusinessId()}`
     ),
 
   getCashFlow: () =>
     request<CashFlowData>(
-      `/cashflow/business/${BUSINESS_ID}`
+      `/cashflow/business/${currentBusinessId()}`
     ),
 
   getSafeToSpend: () =>
     request<SafeToSpendData>(
-      `/safe-to-spend/${BUSINESS_ID}`
+      `/safe-to-spend/${currentBusinessId()}`
     ),
 
   getSales: () =>
     request<ApiSale[]>(
-      `/sales/business/${BUSINESS_ID}`
+      `/sales/business/${currentBusinessId()}`
     ),
 
   postSale: (data: Record<string, unknown>) =>
@@ -167,30 +260,30 @@ export const api = {
       method: "POST",
       body: JSON.stringify({
         ...data,
-        business_id: BUSINESS_ID,
+        business_id: currentBusinessId(),
       }),
     }),
 
   getPurchases: () =>
-    request<ApiPurchase[]>(`/purchases/business/${BUSINESS_ID}`),
+    request<ApiPurchase[]>(`/purchases/business/${currentBusinessId()}`),
 
   postPurchase: (data: Record<string, unknown>) =>
     request<ApiPurchase>("/purchases/", {
       method: "POST",
       body: JSON.stringify({
         ...data,
-        business_id: BUSINESS_ID,
+        business_id: currentBusinessId(),
       }),
     }),
 
   getProducts: () =>
     request<ApiProduct[]>(
-      `/products/business/${BUSINESS_ID}`
+      `/products/business/${currentBusinessId()}`
     ),
 
   getInventory: () =>
     request<ApiProduct[]>(
-      `/products/business/${BUSINESS_ID}`
+      `/products/business/${currentBusinessId()}`
     ),
 
   postProduct: (data: Record<string, unknown>) =>
@@ -198,25 +291,25 @@ export const api = {
       method: "POST",
       body: JSON.stringify({
         ...data,
-        business_id: BUSINESS_ID,
+        business_id: currentBusinessId(),
       }),
     }),
 
   getExpenses: () =>
-    request(`/expenses/business/${BUSINESS_ID}`),
+    request(`/expenses/business/${currentBusinessId()}`),
 
   postExpense: (data: Record<string, unknown>) =>
     request("/expenses/", {
       method: "POST",
       body: JSON.stringify({
         ...data,
-        business_id: BUSINESS_ID,
+        business_id: currentBusinessId(),
       }),
     }),
 
   getUdhaar: () =>
     request<ApiUdhaar[]>(
-      `/udhaar/business/${BUSINESS_ID}`
+      `/udhaar/business/${currentBusinessId()}`
     ),
 
   postUdhaar: (data: Record<string, unknown>) =>
@@ -224,7 +317,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({
         ...data,
-        business_id: BUSINESS_ID,
+        business_id: currentBusinessId(),
       }),
     }),
 
@@ -238,24 +331,27 @@ export const api = {
     }),
 
   getDayBook: () =>
-    request<DayBookData>(`/daybook/business/${BUSINESS_ID}`),
+    request<DayBookData>(`/daybook/business/${currentBusinessId()}`),
 
-  getLoans: () => request<ApiLoan[]>(`/loans/business/${BUSINESS_ID}`),
-  postLoan: (data: Record<string, unknown>) => request<ApiLoan>("/loans/", { method: "POST", body: JSON.stringify({ ...data, business_id: BUSINESS_ID }) }),
+  getLoans: () => request<ApiLoan[]>(`/loans/business/${currentBusinessId()}`),
+  postLoan: (data: Record<string, unknown>) => request<ApiLoan>("/loans/", { method: "POST", body: JSON.stringify({ ...data, business_id: currentBusinessId() }) }),
   postLoanPayment: (id: number, amount: number) => request<ApiLoan>(`/loans/${id}/payment`, { method: "POST", body: JSON.stringify({ amount }) }),
 
   getCustomers: () =>
     request<ApiCustomer[]>(
-      `/customers/business/${BUSINESS_ID}`
+      `/customers/business/${currentBusinessId()}`
     ),
 
   getCoach: () =>
     request<CoachData>(
-      `/coach/business/${BUSINESS_ID}`
+      `/coach/business/${currentBusinessId()}`
     ),
 
+  getCoachStatus: () =>
+    request<CoachStatus>(`/coach/business/${currentBusinessId()}/status`),
+
   postCoach: async (message: string) => {
-    return request<{ message: string; response: string; source: string }>(`/coach/business/${BUSINESS_ID}/ask`, {
+    return request<{ message: string; response: string; source: string }>(`/coach/business/${currentBusinessId()}/ask`, {
       method: "POST",
       body: JSON.stringify({ message }),
     });

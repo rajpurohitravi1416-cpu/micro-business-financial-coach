@@ -45,8 +45,8 @@ const en = {
     latestSales: "LATEST SALES",
     recentSales: "Recent sales",
     quickActions: "Quick actions",
-    bizzBrainsSays: "BIZZ BRAINS SAYS",
-    askBizzBrains: "ASK BIZZ BRAINS",
+    mysHopUpdatesSays: "MysHopUpdates SAYS",
+    askMysHopUpdates: "ASK MysHopUpdates",
   },
 
   actions: {
@@ -57,7 +57,7 @@ const en = {
     reviewStock: "Review stock",
     reviewInventory: "Review Inventory",
     viewUdhaar: "View Udhaar",
-    askBizzBrains: "Ask Bizz Brains",
+    askMysHopUpdates: "Ask MysHopUpdates",
   },
 
   sales: {

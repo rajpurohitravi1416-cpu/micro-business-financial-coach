@@ -5,6 +5,7 @@ from app.models.purchase import Purchase
 from app.models.expense import Expense
 from app.models.customer import Customer
 from app.models.udhaar import Udhaar
+from app.models.user import User, UserSession
 
 __all__ = [
     "Business",
@@ -14,4 +15,6 @@ __all__ = [
     "Expense",
     "Customer",
     "Udhaar",
+    "User",
+    "UserSession",
 ]

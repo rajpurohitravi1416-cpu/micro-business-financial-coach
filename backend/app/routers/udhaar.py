@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models import Customer, Udhaar
+from app.core.security import get_current_user, require_business_access
+from app.models import Customer, Udhaar, User
 from app.schemas.udhaar import (
     UdhaarCreate,
     UdhaarPayment,
@@ -15,8 +16,10 @@ router = APIRouter(prefix="/udhaar", tags=["Udhaar"])
 @router.post("/", response_model=UdhaarResponse)
 def create_udhaar(
     udhaar_data: UdhaarCreate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_business_access(db, current_user, udhaar_data.business_id)
     customer = (
         db.query(Customer)
         .filter(
@@ -62,8 +65,10 @@ def create_udhaar(
 )
 def get_udhaar(
     business_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_business_access(db, current_user, business_id)
     return (
         db.query(Udhaar)
         .filter(Udhaar.business_id == business_id)
@@ -79,6 +84,7 @@ def get_udhaar(
 def record_payment(
     udhaar_id: int,
     payment_data: UdhaarPayment,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     udhaar = (
@@ -92,6 +98,8 @@ def record_payment(
             status_code=404,
             detail="Udhaar record not found",
         )
+
+    require_business_access(db, current_user, udhaar.business_id)
 
     if payment_data.amount_paid <= 0:
         raise HTTPException(
